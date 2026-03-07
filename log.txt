@@ -1,0 +1,136 @@
+# 第一阶段进展总结（音频 A + 键盘/VGA B）& 接口对接说明（截至目前）
+
+## 目前我们已经完成的内容（队员 A：音频）
+
+### 1) 音源（Oscillator：fixed-point + wavetable）
+
+* 使用 **32-bit phase accumulator**（`phase`）+ **step**（由频率决定）实现可变频率输出
+* 采用 **256 点 sine table**（`sine_table[256]`），运行时仅查表，不做浮点运算
+* 核心 API 已实现：
+
+  * `osc_init()`：初始化 wavetable，reset `phase/step`
+  * `osc_set_frequency(freq_hz)`：计算 `step = (freq_hz * 2^32) / SAMPLE_RATE`（SAMPLE_RATE=8000）
+  * `osc_next_sample()`：`phase += step`，`idx = phase >> 24` 查表返回 `int16_t` sample
+
+### 2) 合成器层（Synth：gate + 频率更新优化）
+
+* 增加 `synth.c` 作为“main 与 oscillator 的中间层”，用于：
+
+  * 维护当前是否发声（gate：`g_note_on`）
+  * 维护当前频率（`g_freq_hz`）
+  * **只有在 note 从 off→on 或频率变化时**才调用 `osc_set_frequency()`，避免重复计算
+* 核心 API 已实现：
+
+  * `synth_init()`
+  * `synth_set_note(note_on, freq_hz)`
+  * `synth_next_sample()`（note_on=0 返回 0 静音）
+
+### 3) 音频输出驱动（Audio FIFO）
+
+* 已实现 `audio.c`：
+
+  * `audio_write_space()`：读取 Fifospace，取 `min(WSLC, WSRC)`，保证左右声道同步写入
+
+    * WSLC = bits 31..24，WSRC = bits 23..16
+  * `audio_write_sample(L, R)`：写 Leftdata/Rightdata
+* main loop 采用 batch 写入（例如最多写 32 个 sample/次）以保证连续且为未来 PS/2/VGA 留出时间片
+
+### 4) Key → Note（频率）映射 + glue（piano_engine）
+
+* 已建立 KeyEvent 数据结构（跨模块接口）：
+
+  * `KeyCode`：A/S/D/F/G/H/J/K/L（enum）
+  * `KeyEvent`：`{ key, pressed }`
+* 已实现 `notes.c` 的 mapping：**KEY_A -> C4(261Hz)**，依次为 D4/E4...（常见 C 调）
+* 已实现 `piano_engine.c`：
+
+  * `piano_engine_on_key_event(KeyEvent ev)`：KeyEvent → freq → `synth_set_note(ev.pressed, freq)`
+
+---
+
+## 当前离第一周目标还差什么（最关键）
+
+### ✅ 代码准备基本完成（约 90%）
+
+**还差：上板实测与微调**
+
+* 在 lab 的 DE1-SoC 上跑起来，确认：
+
+  1. 能稳定出声（不断音）
+  2. gate 正常（按下响、松开静音）
+  3. 音量/位宽合适（必要时调 AMPLITUDE 或左移）
+  4. FIFO 写入稳定（确认 WSLC/WSRC 读取没问题）
+
+---
+
+## 队员 B（键盘 + VGA）你需要做的事情（本周重点）
+
+### 1) PS/2 扫描码解析成 KeyEvent（最低要求）
+
+* 从 PS/2 FIFO 读取扫描码，及时读走避免堆积
+* 解析按下/松开（处理 break code，例如 `0xF0`）
+* 至少支持 A/S/D/F/G/H/J/K/L 的 press & release
+* 最终输出为统一格式：
+
+  * `KeyEvent ev = { .key = KEY_A, .pressed = 1/0 };`
+
+### 2) VGA 静态琴键 + KeyEvent 局部高亮
+
+* 先画静态琴键
+* 收到 KeyEvent：
+
+  * pressed=1：对应琴键高亮
+  * pressed=0：恢复
+
+---
+
+## 关键：我们两部分 combine 的接口（必须遵守）
+
+### ✅ 统一接口：KeyEvent
+
+队员 B 只需要在 PS/2 解析后产出：
+
+* `KeyEvent { key = KEY_?, pressed = 1 }` （按下）
+* `KeyEvent { key = KEY_?, pressed = 0 }` （松开）
+
+队员 A 的音频侧只需要消费 KeyEvent，并调用：
+
+* `piano_engine_on_key_event(ev);`
+
+它内部会：
+
+* `freq = note_freq_from_keycode(ev.key);`
+* `synth_set_note(ev.pressed, freq);`
+
+### ✅ 音频输出主循环保持不变
+
+无论输入来自 switch 还是 PS/2，最终音频循环始终是：
+
+* `space = audio_write_space();`
+* 写入 `space` 个 sample：
+
+  * `s = synth_next_sample();`
+  * `audio_write_sample(s, s);`
+
+这样我们集成时只需要“把 KeyEvent 接到 piano_engine”，不会改动音频底层。
+
+---
+
+## 近期集成冻结点（建议 3/13 前）
+
+最低可展示目标（Project Lab #1）：
+
+* “按 A 键 → 出声 + A 对应琴键亮”
+* 需要：
+
+  1. B：PS/2 能稳定产出 KEY_A 的 press/release
+  2. A：piano_engine 接到 KeyEvent，音频 FIFO 连续输出
+  3. B：VGA 根据 KeyEvent 局部高亮
+
+---
+
+## 下一次到 lab 的建议测试顺序（省时间）
+
+1. 先在 main 里临时用 switch gate 测音频连续性（确认 FIFO 输出没问题）
+2. 再接入 PS/2 KeyEvent，只测 KEY_A 的按下/松开
+3. 最后再加 VGA 高亮（确保 KeyEvent 通了以后再画面）
