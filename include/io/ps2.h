@@ -1,0 +1,74 @@
+#ifndef ps2.h
+#define ps2.h
+
+#include <stdbool.h>
+#include <stdint.h>
+#include "app/key_event.h"
+
+/* =========================================================
+ *  PS/2 Scan Code Set 2 constants
+ * ========================================================= */
+
+#define PS2_BREAK_CODE     0xF0
+
+#define PS2_SCANCODE_A     0x1C
+#define PS2_SCANCODE_S     0x1B
+#define PS2_SCANCODE_D     0x23
+#define PS2_SCANCODE_F     0x2B
+#define PS2_SCANCODE_G     0x34
+#define PS2_SCANCODE_H     0x33
+#define PS2_SCANCODE_J     0x3B
+#define PS2_SCANCODE_K     0x42
+#define PS2_SCANCODE_L     0x4B
+
+/* =========================================================
+ *  PS/2 Parser state
+ *
+ *  break_pending = 1 means previous byte was F0
+ * ========================================================= */
+
+typedef struct
+{
+    uint8_t break_pending;
+} PS2Parser;
+
+
+/* =========================================================
+ *  Parser control
+ * ========================================================= */
+
+/* Initialize parser state */
+void ps2_init(PS2Parser *parser);
+
+/* Reset parser state */
+void ps2_reset(PS2Parser *parser);
+
+/* =========================================================
+ *  Scan code processing
+ * ========================================================= */
+
+/* Convert scan code to KeyCode */
+KeyCode ps2_scancode_to_key(uint8_t scancode);
+
+/*
+ * Parse one incoming scan code byte
+ *
+ * Return:
+ *   true  -> a complete KeyEvent is generated
+ *   false -> no event yet
+ */
+bool ps2_parse_byte(PS2Parser *parser, uint8_t byte, KeyEvent *event);
+
+
+/* =========================================================
+ *  Utility functions
+ * ========================================================= */
+
+/* Check if key is supported */
+bool ps2_key_supported(KeyCode key);
+
+/* Convert key to readable string (debugging) */
+const char *ps2_key_to_string(KeyCode key);
+
+
+#endif
