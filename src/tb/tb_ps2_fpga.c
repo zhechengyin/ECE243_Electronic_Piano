@@ -15,11 +15,11 @@ static bool ps2_hw_read_byte(uint8_t* byte_out) {
 
   if (byte_out == NULL) return false;
 
-  data = *(volatile uint32_t*)PS2_BASE;
+  data = PS2_DATA_REG;
 
   if (!(data & PS2_RVALID_MASK)) return false;
 
-  *byte_out = data & PS2_BYTE_MASK;
+  *byte_out = (uint8_t)(data & PS2_BYTE_MASK);
 
   return true;
 }
