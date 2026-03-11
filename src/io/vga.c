@@ -1,5 +1,7 @@
 #include "io/vga.h"
 
+#include <stddef.h>
+
 #include "platform/address_map.h"
 
 /* Pixel buffer base */
