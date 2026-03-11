@@ -1,6 +1,6 @@
 INSTALL	:= C:/intelFPGA/QUARTUS_Lite_V23.1
 
-MAIN	:= src/main.c
+MAIN	:= src/tb/tb_ps2_fpga.c
 
 SHELL	:= cmd.exe
 
@@ -40,17 +40,14 @@ USERCCFLAGS	:= -g -O1 -ffunction-sections -fverbose-asm -fno-inline -gdwarf-2
 USERLDFLAGS := -Wl,--defsym=__stack_pointer$$=0x4000000 -Wl,--defsym=JTAG_UART_BASE=0xff201000
 ARCHCCFLAGS	:= -march=rv32im_zicsr -mabi=ilp32
 ARCHLDFLAGS	:= -march=rv32im_zicsr -mabi=ilp32
-CCFLAGS := -Wall -c $(USERCCFLAGS) $(ARCHCCFLAGS) -Iinclude
+CCFLAGS := -Wall -c $(USERCCFLAGS) $(ARCHCCFLAGS) -I$(CURDIR)/include
 LDFLAGS		:= $(USERLDFLAGS) $(ARCHLDFLAGS)
 
-# Files
-HDRS = $(shell $(BASH) 'cd "$(CURDIR)"; find include -name "*.h"')
+SRCS := $(wildcard src/*.c) $(wildcard src/*/*.c) $(wildcard src/*/*/*.c)
+COMMON_SRCS := $(filter-out $(TEST_MAINS),$(SRCS))
+HDRS := $(wildcard include/*.h) $(wildcard include/*/*.h) $(wildcard include/*/*/*.h)
+OBJS := $(patsubst %.c,%.c.o,$(filter-out $(MAIN),$(SRCS))) $(MAIN).o
 
-# Find all C sources under src/
-SRCS = $(shell $(BASH) 'cd "$(CURDIR)"; find src -name "*.c"')
-
-# Object names: keep the existing "file.c.o" style used by your pattern rule
-OBJS := $(patsubst %, %.o, $(SRCS))
 ############################################
 # GDB Macros
 

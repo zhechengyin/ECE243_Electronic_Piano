@@ -28,7 +28,7 @@
  * ========================================================= */
 
 typedef struct {
-    uint8_t break_pending;
+    uint8_t break_pending;   // 1 if waiting for release code, 0 otherwise
 } PS2Parser;
 
 
