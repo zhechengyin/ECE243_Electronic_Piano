@@ -1,24 +1,65 @@
 #include <stdint.h>
+
+#include "app/key_event.h"
+#include "app/piano_engine.h"
 #include "io/audio.h"
-#include "synth/oscillator.h"
+#include "io/ps2.h"
+#include "io/vga.h"
 #include "platform/address_map.h"
+#include "synth/synth.h"
 
-int main (void) {
-    // Temperary use switch to mute the sound
-    volatile int* switch_ptr = (int *) SW_BASE;
+int main(void) {
+  volatile int* ps2_ptr = (int*)PS2_BASE;
+  volatile int* switch_ptr = (int*)SW_BASE;
 
-    osc_init();   // initialize the oscillator
-    osc_set_frequency(440); // set frequency to A4 (440 Hz)
+  PS2Parser parser;
+  KeyEvent ev;
 
-    while (1){
-        int note_on = (*switch_ptr) & 0x1; // check if SW0 is on
+  /* -------- init -------- */
+  ps2_init(&parser);
+  piano_engine_init();
+  piano_draw_static();
 
-        int space = audio_write_space();   // check how many samples we can write
-        if (space > 32) space = 32; // limit to 32 samples at a time
-        // write 'space' samples to the audio output
-        for (int i = 0; i < space; i++){
-            int16_t sample = note_on ?  osc_next_sample() : 0; // get next sample from oscillator or silence
-            audio_write_sample((int32_t)sample, (int32_t)sample); // write same sample to both L and R channels
-        }
+  while (1) {
+    /* ---------------------------------
+     * 1) Drain PS/2 FIFO first
+     * --------------------------------- */
+    while (1) {
+      int ps2_data = *ps2_ptr;
+      int rvalid = (ps2_data >> 15) & 0x1;
+
+      if (!rvalid) {
+        break;
+      }
+
+      uint8_t byte = (uint8_t)(ps2_data & 0xFF);
+
+      if (ps2_parse_byte(&parser, byte, &ev)) {
+        /* audio side */
+        piano_engine_on_key_event(ev);
+
+        /* VGA side */
+        piano_handle_key_event(&ev);
+      }
     }
+
+    /* ---------------------------------
+     * 2) Feed audio FIFO
+     * --------------------------------- */
+    int space = audio_write_space();
+    if (space > 32) {
+      space = 32;
+    }
+
+    /* SW0 = debug mute switch
+     * SW0=1 -> sound enabled
+     * SW0=0 -> mute
+     */
+    int sound_enable = (*switch_ptr) & 0x1;
+
+    for (int i = 0; i < space; i++) {
+      int16_t sample = sound_enable ? synth_next_sample() : 0;
+      audio_write_sample((int32_t)sample, (int32_t)sample);
+    }
+  }
 }

@@ -2,6 +2,12 @@
 #include "synth/synth.h"
 #include "synth/notes.h"
 
+/*
+    This module is the "brain" of the piano application.
+    It receives key events from the PS/2 input, maps them to musical notes,
+    and controls the synthesizer accordingly.
+*/
+
 static int current_on = 0;
 static uint32_t current_freq = 440;
 

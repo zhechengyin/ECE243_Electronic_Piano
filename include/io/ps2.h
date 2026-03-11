@@ -1,5 +1,5 @@
-#ifndef ps2.h
-#define ps2.h
+#ifndef PS2_H
+#define PS2_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -27,8 +27,7 @@
  *  break_pending = 1 means previous byte was F0
  * ========================================================= */
 
-typedef struct
-{
+typedef struct {
     uint8_t break_pending;
 } PS2Parser;
 
@@ -71,4 +70,4 @@ bool ps2_key_supported(KeyCode key);
 const char *ps2_key_to_string(KeyCode key);
 
 
-#endif
+#endif // PS2_H

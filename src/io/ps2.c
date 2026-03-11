@@ -2,6 +2,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/*
+    This module implements a PS/2 scan code parser for the specific keys used in this project.
+    It maintains a simple state to handle key presses and releases according to PS/2 Set 2.
+*/
+
 /* =========================================================
  * Initialize the PS/2 parser state
  *
@@ -171,89 +176,3 @@ const char* ps2_key_to_string(KeyCode key) {
       return "UNKNOWN";
   }
 }
-
-// int main() {
-//   PS2Parser parser;
-//   KeyEvent event;
-
-//   ps2_init(&parser);
-
-//   printf("=== PS2 Parser Test ===\n\n");
-
-//   /* --------------------------------------
-//      Test case 1 : A key press
-//      scan code = 1C
-//   -------------------------------------- */
-
-//   printf("Input: 0x1C\n");
-
-//   if (ps2_parse_byte(&parser, 0x1C, &event)) {
-//     printf("Event -> key=%s pressed=%d\n", ps2_key_to_string(event.key),
-//            event.pressed);
-//   }
-
-//   printf("\n");
-
-//   /* --------------------------------------
-//      Test case 2 : A key release
-//      scan code = F0 1C
-//   -------------------------------------- */
-
-//   printf("Input: 0xF0\n");
-//   ps2_parse_byte(&parser, 0xF0, &event);
-
-//   printf("Input: 0x1C\n");
-
-//   if (ps2_parse_byte(&parser, 0x1C, &event)) {
-//     printf("Event -> key=%s pressed=%d\n", ps2_key_to_string(event.key),
-//            event.pressed);
-//   }
-
-//   printf("\n");
-
-//   /* --------------------------------------
-//      Test case 3 : S key press
-//   -------------------------------------- */
-
-//   printf("Input: 0x1B\n");
-
-//   if (ps2_parse_byte(&parser, 0x1B, &event)) {
-//     printf("Event -> key=%s pressed=%d\n", ps2_key_to_string(event.key),
-//            event.pressed);
-//   }
-
-//   printf("\n");
-
-//   /* --------------------------------------
-//      Test case 4 : S key release
-//   -------------------------------------- */
-
-//   printf("Input: 0xF0\n");
-//   ps2_parse_byte(&parser, 0xF0, &event);
-
-//   printf("Input: 0x1B\n");
-
-//   if (ps2_parse_byte(&parser, 0x1B, &event)) {
-//     printf("Event -> key=%s pressed=%d\n", ps2_key_to_string(event.key),
-//            event.pressed);
-//   }
-
-//   printf("\n");
-
-//   /* --------------------------------------
-//      Test case 5 : unsupported key
-//      (example: 0x15)
-//   -------------------------------------- */
-
-//   printf("Input: unsupported scan code 0x15\n");
-
-//   if (!ps2_parse_byte(&parser, 0x15, &event)) {
-//     printf("Ignored unsupported key\n");
-//   }
-
-//   printf("\n");
-
-//   printf("=== Test Finished ===\n");
-
-//   return 0;
-// }

@@ -2,6 +2,12 @@
 #include <stdint.h>
 #include <math.h>
 
+/*
+    This is a simple implementation of a sine wave oscillator using a lookup table.
+    The oscillator generates audio samples at a fixed sample rate (e.g., 8000 Hz).
+    The frequency can be set by calculating the appropriate step size for the phase accumulator.
+*/
+
 #define SAMPLE_RATE 8000
 #define TABLE_SIZE 256
 # define AMPLITUDE 12000
