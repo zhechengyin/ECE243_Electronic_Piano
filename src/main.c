@@ -6,7 +6,7 @@
 #include "io/ps2.h"
 #include "io/vga.h"
 #include "platform/address_map.h"
-#include "synth/synth.h"
+
 
 int main(void) {
   volatile int* ps2_ptr = (int*)PS2_BASE;
@@ -58,27 +58,8 @@ int main(void) {
     int sound_enable = (*switch_ptr) & 0x1;
 
     for (int i = 0; i < space; i++) {
-      int32_t sample = sound_enable ? synth_next_sample() : 0;
+      int32_t sample = sound_enable ? piano_engine_next_sample() : 0;
       audio_write_sample(sample, sample);
     }
   }
 }
-
-// int main(void) {
-//     volatile int *switch_ptr = (int *)SW_BASE;
-
-//     osc_init();
-//     osc_set_frequency(440);
-
-//     while (1) {
-//         int on = (*switch_ptr) & 0x1;
-
-//         int space = audio_write_space();
-//         if (space > 32) space = 32;
-
-//         for (int i = 0; i < space; i++) {
-//             int32_t sample = on ? osc_next_sample() : 0;
-//             audio_write_sample(sample, sample);
-//         }
-//     }
-// }
