@@ -12,6 +12,7 @@ static uint32_t g_freq_hz = 0;
 
 void synth_init(void) {
     g_note_on = 0;
+    g_freq_hz = 0;
     osc_init();
 }
 
