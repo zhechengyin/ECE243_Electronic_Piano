@@ -10,9 +10,9 @@
 
 #define SAMPLE_RATE 8000
 #define TABLE_SIZE 256
-# define AMPLITUDE 12000
+#define AMPLITUDE 0x003FFFFF
 
-static int16_t sine_table[TABLE_SIZE];
+static int32_t sine_table[TABLE_SIZE];
 static uint32_t phase = 0;                  // An indicator of the current position
 static uint32_t step = 0;                   // Step size for each sample
 
