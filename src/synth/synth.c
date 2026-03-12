@@ -26,6 +26,6 @@ void synth_set_note(int note_on, uint32_t freq_hz) {
     g_note_on = new_on;
 }
 
-int16_t synth_next_sample(void) {
+int32_t synth_next_sample(void) {
     return g_note_on ? osc_next_sample() : 0;
 }

@@ -58,8 +58,8 @@
 //     int sound_enable = (*switch_ptr) & 0x1;
 
 //     for (int i = 0; i < space; i++) {
-//       int16_t sample = sound_enable ? synth_next_sample() : 0;
-//       audio_write_sample((int32_t)sample, (int32_t)sample);
+//       int32_t sample = sound_enable ? synth_next_sample() : 0;
+//       audio_write_sample(sample, sample);
 //     }
 //   }
 // }
@@ -77,8 +77,8 @@ int main(void) {
         if (space > 32) space = 32;
 
         for (int i = 0; i < space; i++) {
-            int16_t sample = on ? osc_next_sample() : 0;
-            audio_write_sample((int32_t)sample, (int32_t)sample);
+            int32_t sample = on ? osc_next_sample() : 0;
+            audio_write_sample(sample, sample);
         }
     }
 }
