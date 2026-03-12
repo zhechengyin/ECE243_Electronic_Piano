@@ -10,7 +10,7 @@
 
 #define SAMPLE_RATE 8000
 #define TABLE_SIZE 256
-#define AMPLITUDE 0x003FFFFF
+#define AMPLITUDE 0x03FFFFFF
 
 static int32_t sine_table[TABLE_SIZE];
 static uint32_t phase = 0;                  // An indicator of the current position
@@ -18,7 +18,7 @@ static uint32_t step = 0;                   // Step size for each sample
 
 void osc_init(void) {
     for (int i = 0; i < TABLE_SIZE; i++) {
-        double x = 2.0 * M_PI * (double)i / (double)TABLE_SIZE;
+        double x = 2.0 * 3.14159265358979 * (double)i / (double)TABLE_SIZE;
         sine_table[i] = (int32_t)(AMPLITUDE * sin(x));
     }
     phase = 0;

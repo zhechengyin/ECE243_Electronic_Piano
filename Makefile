@@ -1,6 +1,6 @@
 INSTALL	:= C:/intelFPGA/QUARTUS_Lite_V23.1
 
-MAIN	:= src/tb/tb_ps2_fpga.c
+MAIN	:= src/main.c
 
 SHELL	:= cmd.exe
 
