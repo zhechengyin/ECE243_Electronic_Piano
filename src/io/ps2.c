@@ -67,6 +67,12 @@ KeyCode ps2_scancode_to_key(uint8_t scancode) {
       return KEY_K;
     case PS2_SCANCODE_L:
       return KEY_L;
+    case PS2_SCANCODE_W: return KEY_W;
+    case PS2_SCANCODE_E: return KEY_E;
+    case PS2_SCANCODE_T: return KEY_T;
+    case PS2_SCANCODE_Y: return KEY_Y;
+    case PS2_SCANCODE_U: return KEY_U;
+    case PS2_SCANCODE_O: return KEY_O;
 
     default:
       return KEY_NONE;
@@ -90,6 +96,12 @@ bool ps2_key_supported(KeyCode key) {
     case KEY_J:
     case KEY_K:
     case KEY_L:
+    case KEY_W:
+    case KEY_E:
+    case KEY_T:
+    case KEY_Y:
+    case KEY_U:
+    case KEY_O:
       return true;
 
     case KEY_NONE:
@@ -150,29 +162,22 @@ bool ps2_parse_byte(PS2Parser* parser, uint8_t byte, KeyEvent* event) {
  * ========================================================= */
 const char* ps2_key_to_string(KeyCode key) {
   switch (key) {
-    case KEY_A:
-      return "A";
-    case KEY_S:
-      return "S";
-    case KEY_D:
-      return "D";
-    case KEY_F:
-      return "F";
-    case KEY_G:
-      return "G";
-    case KEY_H:
-      return "H";
-    case KEY_J:
-      return "J";
-    case KEY_K:
-      return "K";
-    case KEY_L:
-      return "L";
-
-    case KEY_NONE:
-      return "NONE";
-
-    default:
-      return "UNKNOWN";
+    case KEY_A: return "A";
+    case KEY_S: return "S";
+    case KEY_D: return "D";
+    case KEY_F: return "F";
+    case KEY_G: return "G";
+    case KEY_H: return "H";
+    case KEY_J: return "J";
+    case KEY_K: return "K";
+    case KEY_L: return "L";
+    case KEY_W: return "W";
+    case KEY_E: return "E";
+    case KEY_T: return "T";
+    case KEY_Y: return "Y";
+    case KEY_U: return "U";
+    case KEY_O: return "O";
+    case KEY_NONE: return "NONE";
+    default:     return "UNKNOWN";
   }
 }

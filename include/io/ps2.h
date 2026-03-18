@@ -20,6 +20,12 @@
 #define PS2_SCANCODE_J     0x3B
 #define PS2_SCANCODE_K     0x42
 #define PS2_SCANCODE_L     0x4B
+#define PS2_SCANCODE_W     0x1D
+#define PS2_SCANCODE_E     0x24
+#define PS2_SCANCODE_T     0x2C
+#define PS2_SCANCODE_Y     0x35
+#define PS2_SCANCODE_U     0x3C
+#define PS2_SCANCODE_O     0x44
 
 /* =========================================================
  *  PS/2 Parser state
