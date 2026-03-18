@@ -18,13 +18,6 @@ static uint32_t key_phase[PIANO_KEY_COUNT];
 static uint32_t key_step[PIANO_KEY_COUNT];
 static int active_count = 0;
 
-static int32_t clamp24(int64_t x) {
-  if (x > 0x007FFFFF) return 0x007FFFFF;
-  if (x < -0x00800000) return -0x00800000;
-  return (int32_t)x;
-}
-
-
 void piano_engine_init(void) {
   osc_init();
 
@@ -80,12 +73,42 @@ void piano_engine_on_key_event(KeyEvent ev) {
   }
 }
 
+static int makeup_gain_from_active_count(int n) {
+  if (n <= 1) return 9;
+  if (n == 2) return 8;
+  if (n <= 4) return 6;
+  return 1;   
+}
+
+static int mix_divisor_from_active_count(int n) {
+  if (n <= 1) return 1;
+  if (n == 2) return 2;
+  if (n <= 4) return 2;
+  return 4;
+}
+
+static int32_t soft_clip24(int64_t x) {
+  const int32_t LIMIT = 0x007FFFFF;
+  const int32_t KNEE  = 0x00600000;
+
+  if (x > KNEE) {
+    x = KNEE + ((x - KNEE) >> 3);
+  } else if (x < -KNEE) {
+    x = -KNEE + ((x + KNEE) >> 3);
+  }
+
+  if (x > LIMIT) return LIMIT;
+  if (x < -0x00800000) return -0x00800000;
+  return (int32_t)x;
+}
+
 int32_t piano_engine_next_sample(void) {
   if (active_count == 0){
     return 0;
   }
 
   int64_t mix = 0;
+
   for (int i = 1; i < PIANO_KEY_COUNT; i++){
     if (key_active[i]){
       key_phase[i] += key_step[i];
@@ -93,6 +116,7 @@ int32_t piano_engine_next_sample(void) {
     }
   }
   // Simple normalization
-  mix /= active_count;
-  return clamp24(mix);
+  mix /= mix_divisor_from_active_count(active_count);
+  mix *= makeup_gain_from_active_count(active_count);
+  return soft_clip24(mix);
 }

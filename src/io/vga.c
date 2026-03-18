@@ -38,6 +38,9 @@ static void draw_labels_on_keys(void);
 static void redraw_keyboard(void);
 static void redraw_region_for_white(int i);
 static void redraw_region_for_black(int i);
+static volatile bool vga_dirty = false;
+static bool dirty_white[NUM_WHITE];
+static bool dirty_black[NUM_BLACK];
 
 /* ---------- low-level VGA ---------- */
 
@@ -319,33 +322,12 @@ static void redraw_keyboard(void) {
 }
 
 static void redraw_region_for_white(int i) {
-    int x0 = KB_X + i * WHITE_W;
-    int x1 = x0 + WHITE_W;
+    draw_white_key(i, white_down[i]);
+    draw_white_label_at(i);
 
     for (int b = 0; b < NUM_BLACK; b++) {
         int left = black_after_white[b];
         if (left == i || left + 1 == i) {
-            int bx = KB_X + (left + 1) * WHITE_W - (BLACK_W / 2);
-            if (bx < x0) x0 = bx;
-            if (bx + BLACK_W > x1) x1 = bx + BLACK_W;
-        }
-    }
-
-    vga_fill_rect(x0, KB_Y, x1 - x0, WHITE_H, COLOR_BG);
-
-    for (int w = 0; w < NUM_WHITE; w++) {
-        int wx0 = KB_X + w * WHITE_W;
-        int wx1 = wx0 + WHITE_W;
-        if (!(wx1 <= x0 || wx0 >= x1)) {
-            draw_white_key(w, white_down[w]);
-            draw_white_label_at(w);
-        }
-    }
-
-    for (int b = 0; b < NUM_BLACK; b++) {
-        int bx0 = KB_X + (black_after_white[b] + 1) * WHITE_W - (BLACK_W / 2);
-        int bx1 = bx0 + BLACK_W;
-        if (!(bx1 <= x0 || bx0 >= x1)) {
             draw_black_key(b, black_down[b]);
             draw_black_label_at(b);
         }
@@ -353,20 +335,6 @@ static void redraw_region_for_white(int i) {
 }
 
 static void redraw_region_for_black(int i) {
-    int x0 = KB_X + (black_after_white[i] + 1) * WHITE_W - (BLACK_W / 2);
-    int x1 = x0 + BLACK_W;
-
-    vga_fill_rect(x0, KB_Y, x1 - x0, WHITE_H, COLOR_BG);
-
-    for (int w = 0; w < NUM_WHITE; w++) {
-        int wx0 = KB_X + w * WHITE_W;
-        int wx1 = wx0 + WHITE_W;
-        if (!(wx1 <= x0 || wx0 >= x1)) {
-            draw_white_key(w, white_down[w]);
-            draw_white_label_at(w);
-        }
-    }
-
     draw_black_key(i, black_down[i]);
     draw_black_label_at(i);
 }
@@ -376,9 +344,11 @@ static void redraw_region_for_black(int i) {
 void piano_draw_static(void) {
     for (int i = 0; i < NUM_WHITE; i++) {
         white_down[i] = false;
+        dirty_white[i] = false;
     }
     for (int i = 0; i < NUM_BLACK; i++) {
         black_down[i] = false;
+        dirty_black[i] = false;
     }
 
     vga_clear(COLOR_BG);
@@ -391,7 +361,8 @@ void piano_draw_key(KeyCode key, bool highlighted) {
     if (idx >= 0) {
         if (white_down[idx] != highlighted) {
             white_down[idx] = highlighted;
-            redraw_region_for_white(idx);
+            dirty_white[idx] = true;
+            vga_dirty = true;
         }
         return;
     }
@@ -400,11 +371,35 @@ void piano_draw_key(KeyCode key, bool highlighted) {
     if (idx >= 0) {
         if (black_down[idx] != highlighted) {
             black_down[idx] = highlighted;
-            redraw_region_for_black(idx);
+            dirty_black[idx] = true;
+            vga_dirty = true;
         }
     }
 }
 
+void piano_vga_flush(void) {
+    if (!vga_dirty) {
+        return;
+    }
+
+    for (int i = 0; i < NUM_WHITE; i++) {
+        if (dirty_white[i]) {
+            redraw_region_for_white(i);
+            dirty_white[i] = false;
+        }
+    }
+
+    for (int i = 0; i < NUM_BLACK; i++) {
+        if (dirty_black[i]) {
+            redraw_region_for_black(i);
+            dirty_black[i] = false;
+        }
+    }
+
+    vga_dirty = false;
+}
+
+/* keyboard handler unchanged */
 void piano_handle_key_event(const KeyEvent *event) {
     if (event == NULL) {
         return;
@@ -412,8 +407,6 @@ void piano_handle_key_event(const KeyEvent *event) {
 
     piano_draw_key(event->key, event->pressed != 0);
 }
-
-/* compatibility stubs */
 
 void vga_draw_letter(int x, int y, char c, uint16_t color) {
     draw_key_letter_pixels(x, y, c, color);

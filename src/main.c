@@ -7,7 +7,6 @@
 #include "io/vga.h"
 #include "platform/address_map.h"
 
-
 int main(void) {
   volatile int* ps2_ptr = (int*)PS2_BASE;
   volatile int* switch_ptr = (int*)SW_BASE;
@@ -43,6 +42,9 @@ int main(void) {
       }
     }
 
+    /* ✅ FIX: flush VGA updates here (non-blocking) */
+    piano_vga_flush();
+
     /* ---------------------------------
      * 2) Feed audio FIFO
      * --------------------------------- */
@@ -51,10 +53,6 @@ int main(void) {
       space = 32;
     }
 
-    /* SW0 = debug mute switch
-     * SW0=1 -> sound enabled
-     * SW0=0 -> mute
-     */
     int sound_enable = (*switch_ptr) & 0x1;
 
     for (int i = 0; i < space; i++) {
