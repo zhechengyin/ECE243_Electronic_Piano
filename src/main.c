@@ -42,7 +42,6 @@ int main(void) {
       }
     }
 
-    /* ✅ FIX: flush VGA updates here (non-blocking) */
     piano_vga_flush();
 
     /* ---------------------------------
