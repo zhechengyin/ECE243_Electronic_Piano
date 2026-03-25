@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "app/key_event.h"
+#include "synth/notes.h"
 
 /* =========================================================
  *  PS/2 Scan Code Set 2 constants
@@ -20,6 +21,20 @@
 #define PS2_SCANCODE_J     0x3B
 #define PS2_SCANCODE_K     0x42
 #define PS2_SCANCODE_L     0x4B
+#define PS2_SCANCODE_W     0x1D
+#define PS2_SCANCODE_E     0x24
+#define PS2_SCANCODE_T     0x2C
+#define PS2_SCANCODE_Y     0x35
+#define PS2_SCANCODE_U     0x3C
+#define PS2_SCANCODE_O     0x44
+#define PS2_SCANCODE_1     0x16
+#define PS2_SCANCODE_2     0x1E
+#define PS2_SCANCODE_3     0x26
+#define PS2_SCANCODE_4     0x25
+#define PS2_SCANCODE_5     0x2E
+#define PS2_SCANCODE_6     0x36
+#define PS2_SCANCODE_7     0x3D
+#define PS2_SCANCODE_8     0x3E
 
 /* =========================================================
  *  PS/2 Parser state
