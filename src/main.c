@@ -73,32 +73,15 @@ int main(void) {
           int new_zone = -1;
 
           switch (ev.key) {
-            case KEY_1:
-              new_zone = 0;
-              break;
-            case KEY_2:
-              new_zone = 1;
-              break;
-            case KEY_3:
-              new_zone = 2;
-              break;
-            case KEY_4:
-              new_zone = 3;
-              break;
-            case KEY_5:
-              new_zone = 4;
-              break;
-            case KEY_6:
-              new_zone = 5;
-              break;
-            case KEY_7:
-              new_zone = 6;
-              break;
-            case KEY_8:
-              new_zone = 7;
-              break;
-            default:
-              break;
+            case KEY_1: new_zone = 0; break;
+            case KEY_2: new_zone = 1; break;
+            case KEY_3: new_zone = 2; break;
+            case KEY_4: new_zone = 3; break;
+            case KEY_5: new_zone = 4; break;
+            case KEY_6: new_zone = 5; break;
+            case KEY_7: new_zone = 6; break;
+            case KEY_8: new_zone = 7; break;
+            default: break;
           }
 
           if (new_zone >= 0) {
@@ -118,8 +101,6 @@ int main(void) {
 
     piano_vga_flush();
 
-    piano_vga_flush();
-
     /* ---------------------------------
      * 2) Feed audio FIFO
      * --------------------------------- */
@@ -131,7 +112,6 @@ int main(void) {
     int sound_enable = (*switch_ptr) & 0x1;
 
     for (int i = 0; i < space; i++) {
-      int32_t sample = sound_enable ? piano_engine_next_sample() : 0;
       int32_t sample = sound_enable ? piano_engine_next_sample() : 0;
       audio_write_sample(sample, sample);
     }
