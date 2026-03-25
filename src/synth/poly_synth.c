@@ -4,7 +4,7 @@
 
 #include "synth/oscillator.h"
 
-#define POLY_SYNTH_VOICE_COUNT (KEY_L + 1)
+#define POLY_SYNTH_VOICE_COUNT KEY_COUNT
 
 /* envelope states */
 #define ENV_OFF      0
@@ -14,21 +14,27 @@
 #define ENV_RELEASE  4
 
 /* envelope parameters */
-#define ENV_MAX          4096
-#define ENV_SUSTAIN_LVL  2200
+#define ENV_MAX                 16384
 
-#define ENV_ATTACK_STEP   512
-#define ENV_DECAY_STEP     12
-#define ENV_RELEASE_STEP   24
+#define ENV_DECAY_TARGET         6500
+#define ENV_SUSTAIN_TARGET       1400
+
+#define ENV_ATTACK_STEP           128
+#define ENV_DECAY_STEP              2
+#define ENV_SUSTAIN_DECAY_STEP      1
+#define ENV_RELEASE_STEP            3
+
+#define ENV_SUSTAIN_DECAY_DIV       6
 
 typedef struct {
-  int active;          /* 1 = this voice is still ringing */
+  int active;
   KeyCode key;
   uint32_t freq;
   uint32_t phase;
   uint32_t step;
   uint16_t env;
   uint8_t env_state;
+  uint8_t sustain_div;
 } Voice;
 
 static Voice voices[POLY_SYNTH_VOICE_COUNT];
@@ -41,9 +47,9 @@ static int mix_divisor_from_voice_count(int n) {
 }
 
 static int makeup_gain_from_voice_count(int n) {
-  if (n <= 1) return 9;
-  if (n == 2) return 8;
-  if (n <= 4) return 6;
+  if (n <= 1) return 6;
+  if (n == 2) return 5;
+  if (n <= 4) return 4;
   return 1;
 }
 
@@ -70,6 +76,7 @@ static void voice_clear(int i) {
   voices[i].step = 0;
   voices[i].env = 0;
   voices[i].env_state = ENV_OFF;
+  voices[i].sustain_div = 0;
 }
 
 static void update_envelope(int i) {
@@ -84,17 +91,25 @@ static void update_envelope(int i) {
       break;
 
     case ENV_DECAY:
-      if (voices[i].env > ENV_SUSTAIN_LVL + ENV_DECAY_STEP) {
+      if (voices[i].env > ENV_DECAY_TARGET + ENV_DECAY_STEP) {
         voices[i].env -= ENV_DECAY_STEP;
       } else {
-        voices[i].env = ENV_SUSTAIN_LVL;
+        voices[i].env = ENV_DECAY_TARGET;
         voices[i].env_state = ENV_SUSTAIN;
+        voices[i].sustain_div = 0;
       }
       break;
 
     case ENV_SUSTAIN:
-      /* hold at sustain level until note_off moves it to release */
-      voices[i].env = ENV_SUSTAIN_LVL;
+      if (voices[i].env > ENV_SUSTAIN_TARGET) {
+        voices[i].sustain_div++;
+        if (voices[i].sustain_div >= ENV_SUSTAIN_DECAY_DIV) {
+          voices[i].sustain_div = 0;
+          voices[i].env -= ENV_SUSTAIN_DECAY_STEP;
+        }
+      } else {
+        voices[i].env = ENV_SUSTAIN_TARGET;
+      }
       break;
 
     case ENV_RELEASE:
@@ -128,10 +143,11 @@ void poly_synth_note_on(KeyCode key, uint32_t freq_hz) {
   voices[key].active = 1;
   voices[key].key = key;
   voices[key].freq = freq_hz;
-  voices[key].phase = 0;  /* piano-like retrigger */
+  voices[key].phase = 0;
   voices[key].step = osc_phase_step_from_freq(freq_hz);
   voices[key].env = 0;
   voices[key].env_state = ENV_ATTACK;
+  voices[key].sustain_div = 0;
 }
 
 void poly_synth_note_off(KeyCode key) {
@@ -173,8 +189,24 @@ int32_t poly_synth_next_sample(void) {
 
     voices[i].phase += voices[i].step;
 
-    int32_t raw = osc_sample_from_phase(voices[i].phase);
-    int64_t voiced = ((int64_t)raw * voices[i].env) / ENV_MAX;
+    uint32_t p1 = voices[i].phase;
+    uint32_t p2 = p1 << 1;   // 2nd harmonic
+    uint32_t p3 = p1 * 3;    // 3rd harmonic
+    uint32_t p4 = p1 << 2;
+
+    int32_t s1 = osc_sample_from_phase(p1);
+    int32_t s2 = osc_sample_from_phase(p2);
+    int32_t s3 = osc_sample_from_phase(p3);
+    int32_t s4 = osc_sample_from_phase(p4);
+
+    /* piano-like harmonic mix */
+    int64_t raw =
+        (int64_t)s1 +
+        ((int64_t)s2 >> 2) +   // about 0.25
+        ((int64_t)s3 >> 3) +    // about 0.125
+        ((int64_t)s4 >> 5);    // 0.03125
+
+    int64_t voiced = (raw * voices[i].env) / ENV_MAX;
 
     mix += voiced;
     ringing_count++;

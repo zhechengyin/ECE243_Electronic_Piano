@@ -5,7 +5,8 @@
 #include "synth/notes.h"
 #include "synth/poly_synth.h"
 
-#define PIANO_KEY_COUNT (KEY_L + 1)
+#define PIANO_KEY_COUNT KEY_COUNT
+
 
 /*
     piano_engine:

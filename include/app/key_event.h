@@ -5,9 +5,12 @@
 
 typedef enum {
     KEY_NONE = 0,
-    KEY_A, KEY_S, KEY_D, KEY_F, KEY_G,
-    KEY_H, KEY_J, KEY_K, KEY_L, KEY_W,
-    KEY_E, KEY_T, KEY_Y, KEY_U, KEY_O
+
+    KEY_A, KEY_W, KEY_S, KEY_E, KEY_D,
+    KEY_F, KEY_T, KEY_G, KEY_Y, KEY_H,
+    KEY_U, KEY_J, KEY_K, KEY_O, KEY_L,
+
+    KEY_COUNT
 } KeyCode;
 
 typedef struct {

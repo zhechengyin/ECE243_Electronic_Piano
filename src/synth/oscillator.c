@@ -10,7 +10,7 @@
 
 #define SAMPLE_RATE 8000
 #define TABLE_SIZE 256
-#define AMPLITUDE 0x00300000
+#define AMPLITUDE 0x00480000
 
 static int32_t sine_table[TABLE_SIZE];
 static uint32_t phase = 0;                  // An indicator of the current position
