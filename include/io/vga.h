@@ -13,8 +13,8 @@
 #define SCREEN_H      240
 #define SCREEN_W     320
 
-#define NUM_WHITE    9
-#define NUM_BLACK    6
+#define NUM_WHITE    7
+#define NUM_BLACK    5
 
 #define KB_X         ((SCREEN_W - (NUM_WHITE * WHITE_W)) / 2)
 #define KB_Y         (SCREEN_H - WHITE_H - 8)

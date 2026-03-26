@@ -42,35 +42,32 @@ static uint32_t apply_zone_shift(uint32_t base) {
 */
 
 uint32_t note_freq_from_keycode(KeyCode k) {
-    uint32_t base = 0;
+    int zone = notes_get_zone();   /* 0..7 */
+
+    /* zone 0 = lowest partial octave: A0, A#0, B0 */
+    if (zone == 0) {
+        switch (k) {
+            case KEY_A: return 27;  // A0
+            case KEY_W: return 29;  // A#0 / Bb0
+            case KEY_S: return 31;  // B0
+            default:    return 0;
+        }
+    }
+
+    /* other zones = full octave */
     switch (k) {
-        case KEY_A: return 261; // C4
-        case KEY_W: return 277; // C#4
-        case KEY_S: return 294; // D4
-        case KEY_E: return 311; // D#4
-        case KEY_D: return 329; // E4
-
-        case KEY_F: return 349; // F4
-        case KEY_T: return 370; // F#4
-        case KEY_G: return 392; // G4
-        case KEY_Y: return 415; // G#4
-        case KEY_H: return 440; // A4
-        case KEY_U: return 466; // A#4
-        case KEY_J: return 493; // B4
-
-        case KEY_K: return 523; // C5
-        case KEY_O: return 554; // C#5
-        case KEY_L: return 587; // D5
-
-        default:
-            return 0;
+        case KEY_A: return base_C_for_zone(zone);      // Cn
+        case KEY_W: return base_Cs_for_zone(zone);     // C#n
+        case KEY_S: return base_D_for_zone(zone);      // Dn
+        case KEY_E: return base_Ds_for_zone(zone);     // D#n
+        case KEY_D: return base_E_for_zone(zone);      // En
+        case KEY_F: return base_F_for_zone(zone);      // Fn
+        case KEY_T: return base_Fs_for_zone(zone);     // F#n
+        case KEY_G: return base_G_for_zone(zone);      // Gn
+        case KEY_Y: return base_Gs_for_zone(zone);     // G#n
+        case KEY_H: return base_A_for_zone(zone);      // An
+        case KEY_U: return base_As_for_zone(zone);     // A#n
+        case KEY_J: return base_B_for_zone(zone);      // Bn
+        default:    return 0;
     }
-
-    // APPLY ZONE SHIFT
-    if (current_zone == 0) {
-        return base / 2;   // LOW octave
-    } else if (current_zone == 2) {
-        return base * 2;   // HIGH octave
-    }
-    return base;
 }

@@ -27,6 +27,18 @@ static void cycle_mode(void) {
   vga_draw_zone_status();
 }
 
+static int key_allowed_in_zone(KeyCode key) {
+    int zone = notes_get_zone();
+
+    if (zone == 0) {
+        return (key == KEY_A || key == KEY_W || key == KEY_S);
+    }
+
+    return (key == KEY_A || key == KEY_W || key == KEY_S || key == KEY_E ||
+            key == KEY_D || key == KEY_F || key == KEY_T || key == KEY_G ||
+            key == KEY_Y || key == KEY_H || key == KEY_U || key == KEY_J);
+}
+
 int main(void) {
   volatile int* ps2_ptr = (int*)PS2_BASE;
   volatile int* switch_ptr = (int*)SW_BASE;
@@ -69,6 +81,12 @@ int main(void) {
       uint8_t byte = (uint8_t)(ps2_data & 0xFF);
 
       if (ps2_parse_byte(&parser, byte, &ev)) {
+        if (!key_allowed_in_zone(ev.key) &&
+            ev.key != KEY_1 && ev.key != KEY_2 && ev.key != KEY_3 &&
+            ev.key != KEY_4 && ev.key != KEY_5 && ev.key != KEY_6 &&
+            ev.key != KEY_7 && ev.key != KEY_8) {
+            continue;
+        }
         if (ev.pressed && timbre_get_mode() != TIMBRE_GUITAR) {
           int new_zone = -1;
 
@@ -86,6 +104,7 @@ int main(void) {
 
           if (new_zone >= 0) {
             notes_set_zone(new_zone);
+            piano_draw_static();
             vga_draw_zone_status();
             continue;
           }

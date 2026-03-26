@@ -43,7 +43,7 @@ void ps2_reset(PS2Parser* parser) {
  * Convert a PS/2 scan code (Set 2) into a project key enum
  *
  * Only the required keys are supported:
- *   A S D F G H J K L
+ *   A S D F G H J W E T Y U 1 2 3 4 5 6 7 8
  *
  * If the scan code is not recognized, KEY_NONE is returned.
  * ========================================================= */
@@ -63,16 +63,11 @@ KeyCode ps2_scancode_to_key(uint8_t scancode) {
       return KEY_H;
     case PS2_SCANCODE_J:
       return KEY_J;
-    case PS2_SCANCODE_K:
-      return KEY_K;
-    case PS2_SCANCODE_L:
-      return KEY_L;
     case PS2_SCANCODE_W: return KEY_W;
     case PS2_SCANCODE_E: return KEY_E;
     case PS2_SCANCODE_T: return KEY_T;
     case PS2_SCANCODE_Y: return KEY_Y;
     case PS2_SCANCODE_U: return KEY_U;
-    case PS2_SCANCODE_O: return KEY_O;
     case PS2_SCANCODE_1: return KEY_1;  // '1'
     case PS2_SCANCODE_2: return KEY_2;  // '2'
     case PS2_SCANCODE_3: return KEY_3;  // '3'
@@ -90,7 +85,7 @@ KeyCode ps2_scancode_to_key(uint8_t scancode) {
 /* =========================================================
  * Check whether a key is supported by this project
  *
- * This project only needs 9 keys (A-L).
+ * This project supports piano keys, black keys, and number keys 1–8.
  * Any other key is ignored.
  * ========================================================= */
 bool ps2_key_supported(KeyCode key) {
@@ -102,14 +97,11 @@ bool ps2_key_supported(KeyCode key) {
     case KEY_G:
     case KEY_H:
     case KEY_J:
-    case KEY_K:
-    case KEY_L:
     case KEY_W:
     case KEY_E:
     case KEY_T:
     case KEY_Y:
     case KEY_U:
-    case KEY_O:
     case KEY_1:
     case KEY_2:
     case KEY_3:
@@ -185,14 +177,11 @@ const char* ps2_key_to_string(KeyCode key) {
     case KEY_G: return "G";
     case KEY_H: return "H";
     case KEY_J: return "J";
-    case KEY_K: return "K";
-    case KEY_L: return "L";
     case KEY_W: return "W";
     case KEY_E: return "E";
     case KEY_T: return "T";
     case KEY_Y: return "Y";
     case KEY_U: return "U";
-    case KEY_O: return "O";
     case KEY_1: return "1";
     case KEY_2: return "2";
     case KEY_3: return "3";
