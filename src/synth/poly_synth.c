@@ -5,7 +5,7 @@
 #include "synth/oscillator.h"
 #include "synth/timbre.h"
 
-#define POLY_SYNTH_VOICE_COUNT KEY_COUNT
+#define POLY_SYNTH_VOICE_COUNT 32
 
 /* envelope states */
 #define ENV_OFF      0
@@ -19,7 +19,7 @@
 
 typedef struct {
   int active;
-  KeyCode key;
+  KeyCode key;      /* trigger key, not array index */
   uint32_t freq;
   uint32_t phase;
   uint32_t step;
@@ -35,6 +35,7 @@ static int mix_divisor_from_voice_count(int n) {
   if (n <= 1) return 1;
   if (n == 2) return 2;
   if (n <= 4) return 2;
+  if (n <= 8) return 3;
   return 4;
 }
 
@@ -42,6 +43,7 @@ static int makeup_gain_from_voice_count(int n) {
   if (n <= 1) return 6;
   if (n == 2) return 5;
   if (n <= 4) return 4;
+  if (n <= 8) return 2;
   return 1;
 }
 
@@ -133,6 +135,22 @@ static void update_envelope(int i, const TimbreSpec* spec) {
   }
 }
 
+static int find_free_voice_slot(void) {
+  for (int i = 0; i < POLY_SYNTH_VOICE_COUNT; i++) {
+    if (!voices[i].active) {
+      return i;
+    }
+  }
+
+  for (int i = 0; i < POLY_SYNTH_VOICE_COUNT; i++) {
+    if (voices[i].env_state == ENV_RELEASE) {
+      return i;
+    }
+  }
+
+  return 0;
+}
+
 void poly_synth_init(void) {
   osc_init();
 
@@ -143,36 +161,41 @@ void poly_synth_init(void) {
 
 void poly_synth_note_on(KeyCode key, uint32_t freq_hz) {
   const TimbreSpec* spec = timbre_get_spec();
+  int slot;
 
-  if (key <= KEY_NONE || key >= POLY_SYNTH_VOICE_COUNT) {
+  if (key <= KEY_NONE || key >= KEY_COUNT || freq_hz == 0) {
     return;
   }
 
-  voices[key].active = 1;
-  voices[key].key = key;
-  voices[key].freq = freq_hz;
-  voices[key].phase = 0;
-  voices[key].step = osc_phase_step_from_freq(freq_hz);
-  voices[key].env = 0;
-  voices[key].env_state = ENV_ATTACK;
-  voices[key].sustain_div = 0;
-  voices[key].pluck_count = spec->pluck_samples;
+  slot = find_free_voice_slot();
+
+  voices[slot].active = 1;
+  voices[slot].key = key;
+  voices[slot].freq = freq_hz;
+  voices[slot].phase = 0;
+  voices[slot].step = osc_phase_step_from_freq(freq_hz);
+  voices[slot].env = 0;
+  voices[slot].env_state = ENV_ATTACK;
+  voices[slot].sustain_div = 0;
+  voices[slot].pluck_count = spec->pluck_samples;
 }
 
 void poly_synth_note_off(KeyCode key) {
-  if (key <= KEY_NONE || key >= POLY_SYNTH_VOICE_COUNT) {
+  if (key <= KEY_NONE || key >= KEY_COUNT) {
     return;
   }
 
-  if (voices[key].active && voices[key].env_state != ENV_OFF) {
-    voices[key].env_state = ENV_RELEASE;
+  for (int i = 0; i < POLY_SYNTH_VOICE_COUNT; i++) {
+    if (voices[i].active && voices[i].key == key && voices[i].env_state != ENV_OFF) {
+      voices[i].env_state = ENV_RELEASE;
+    }
   }
 }
 
 int poly_synth_active_count(void) {
   int count = 0;
 
-  for (int i = 1; i < POLY_SYNTH_VOICE_COUNT; i++) {
+  for (int i = 0; i < POLY_SYNTH_VOICE_COUNT; i++) {
     if (voices[i].active) {
       count++;
     }
@@ -186,7 +209,7 @@ int32_t poly_synth_next_sample(void) {
   int64_t mix = 0;
   int ringing_count = 0;
 
-  for (int i = 1; i < POLY_SYNTH_VOICE_COUNT; i++) {
+  for (int i = 0; i < POLY_SYNTH_VOICE_COUNT; i++) {
     if (!voices[i].active) {
       continue;
     }
@@ -199,18 +222,18 @@ int32_t poly_synth_next_sample(void) {
 
     voices[i].phase += voices[i].step;
 
-    int64_t raw = timbre_render_raw_sample(voices[i].phase,
-                                           voices[i].pluck_count,
-                                           spec);
+    {
+      int64_t raw = timbre_render_raw_sample(voices[i].phase,
+                                             voices[i].pluck_count,
+                                             spec);
 
-    if (voices[i].pluck_count > 0) {
-      voices[i].pluck_count--;
+      if (voices[i].pluck_count > 0) {
+        voices[i].pluck_count--;
+      }
+
+      mix += (raw * voices[i].env) / ENV_MAX;
+      ringing_count++;
     }
-
-    int64_t voiced = (raw * voices[i].env) / ENV_MAX;
-
-    mix += voiced;
-    ringing_count++;
   }
 
   if (ringing_count == 0) {

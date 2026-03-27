@@ -1,70 +1,79 @@
 #include "app/piano_engine.h"
 
 #include <stdint.h>
+#include <string.h>
 
+#include "synth/guitar_chords.h"
 #include "synth/notes.h"
 #include "synth/poly_synth.h"
+#include "synth/timbre.h"
 
-#define PIANO_KEY_COUNT KEY_COUNT
+static uint8_t key_is_down[KEY_COUNT];
 
-
-/*
-    piano_engine:
-    - maintain which keys are currently physically pressed
-    - forward note on/off events to poly_synth
-    - keep main.c interface unchanged
-*/
-
-static int key_active[PIANO_KEY_COUNT];
-static int active_count = 0;
+static int is_guitar_number_key(KeyCode key) {
+  return (key >= KEY_1 && key <= KEY_8);
+}
 
 void piano_engine_init(void) {
+  memset(key_is_down, 0, sizeof(key_is_down));
   poly_synth_init();
-
-  for (int i = 0; i < PIANO_KEY_COUNT; i++) {
-    key_active[i] = 0;
-  }
-
-  active_count = 0;
 }
 
-int piano_engine_active_count(void) {
-  return active_count;
-}
-
-int piano_engine_is_key_active(KeyCode key) {
-  if (key < 0 || key >= PIANO_KEY_COUNT) {
-    return 0;
+void piano_engine_all_notes_off(void) {
+  for (int k = 1; k < KEY_COUNT; k++) {
+    poly_synth_note_off((KeyCode)k);
+    key_is_down[k] = 0;
   }
-  return key_active[key];
 }
 
 void piano_engine_on_key_event(KeyEvent ev) {
-  if (ev.key <= KEY_NONE || ev.key >= PIANO_KEY_COUNT) {
-    return;
-  }
-
-  uint32_t f = note_freq_from_keycode(ev.key);
-  if (f == 0) {
+  if (ev.key <= KEY_NONE || ev.key >= KEY_COUNT) {
     return;
   }
 
   if (ev.pressed) {
-    /* avoid repeated make codes re-triggering everything */
-    if (!key_active[ev.key]) {
-      key_active[ev.key] = 1;
-      active_count++;
-      poly_synth_note_on(ev.key, f);
+    /* Ignore typematic repeats while a key is already held. */
+    if (key_is_down[ev.key]) {
+      return;
     }
+    key_is_down[ev.key] = 1;
   } else {
-    if (key_active[ev.key]) {
-      key_active[ev.key] = 0;
-      active_count--;
+    /* Ignore stray releases. */
+    if (!key_is_down[ev.key]) {
+      return;
+    }
+    key_is_down[ev.key] = 0;
+  }
 
-      if (active_count < 0) {
-        active_count = 0;
+  if (timbre_get_mode() == TIMBRE_GUITAR) {
+    if (!is_guitar_number_key(ev.key)) {
+      return;
+    }
+
+    if (ev.pressed) {
+      uint32_t freqs[GUITAR_CHORD_MAX_NOTES];
+      int chord_count = guitar_chord_from_key(ev.key, freqs, GUITAR_CHORD_MAX_NOTES);
+
+      for (int i = 0; i < chord_count; i++) {
+        poly_synth_note_on(ev.key, freqs[i]);
       }
+    } else {
+      poly_synth_note_off(ev.key);
+    }
 
+    return;
+  }
+
+  {
+    uint32_t freq = note_freq_from_keycode(ev.key);
+
+    if (freq == 0) {
+      return;
+    }
+
+    if (ev.pressed) {
+      poly_synth_note_on(ev.key, freq);
+    } else {
       poly_synth_note_off(ev.key);
     }
   }

@@ -45,21 +45,21 @@ static const TimbreSpec timbre_specs[] = {
     },
 
     [TIMBRE_GUITAR] = {
-        .decay_target = 2600,
-        .sustain_target = 500,
+        .decay_target = 2200,
+        .sustain_target = 280,
         .attack_step = 256,
-        .decay_step = 10,
-        .sustain_decay_step = 2,
-        .release_step = 12,
+        .decay_step = 12,
+        .sustain_decay_step = 3,
+        .release_step = 14,
         .sustain_decay_div = 4,
-        .pluck_samples = 48,
+        .pluck_samples = 24,
 
-        .h2_shift = 3, /* 1/8 */
+        .h2_shift = 2, /* 1/4 : slightly thicker */
         .h3_shift = 4, /* 1/16 */
-        .h4_shift = 5, /* 1/32 */
+        .h4_shift = 6, /* 1/64 : less sharp */
 
-        .pluck_h3_shift = 2, /* 1/4 */
-        .pluck_h4_shift = 3, /* 1/8 */
+        .pluck_h3_shift = 4, /* 1/16 */
+        .pluck_h4_shift = 6, /* 1/64 */
     },
 };
 

@@ -38,6 +38,7 @@ void piano_vga_flush(void) {
 
 void piano_handle_key_event(const KeyEvent *event) {
     if (timbre_get_mode() == TIMBRE_GUITAR) {
+        guitar_view_handle_key_event(event);
         return;
     }
     piano_view_handle_key_event(event);

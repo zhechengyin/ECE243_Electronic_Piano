@@ -9,8 +9,15 @@
 #include "synth/notes.h"
 #include "synth/timbre.h"
 
+static int is_number_key(KeyCode key) {
+  return (key >= KEY_1 && key <= KEY_8);
+}
+
 static void cycle_mode(void) {
   TimbreMode mode = timbre_get_mode();
+
+  /* release anything still ringing before changing instrument behavior */
+  piano_engine_all_notes_off();
 
   if (mode == TIMBRE_PIANO) {
     timbre_set_mode(TIMBRE_ORGAN);
@@ -20,23 +27,19 @@ static void cycle_mode(void) {
     timbre_set_mode(TIMBRE_PIANO);
   }
 
-  if (timbre_get_mode() == TIMBRE_GUITAR) {
-    notes_set_zone(0);
-  }
-
   vga_draw_zone_status();
 }
 
 static int key_allowed_in_zone(KeyCode key) {
-    int zone = notes_get_zone();
+  int zone = notes_get_zone();
 
-    if (zone == 0) {
-        return (key == KEY_A || key == KEY_W || key == KEY_S);
-    }
+  if (zone == 0) {
+    return (key == KEY_A || key == KEY_W || key == KEY_S);
+  }
 
-    return (key == KEY_A || key == KEY_W || key == KEY_S || key == KEY_E ||
-            key == KEY_D || key == KEY_F || key == KEY_T || key == KEY_G ||
-            key == KEY_Y || key == KEY_H || key == KEY_U || key == KEY_J);
+  return (key == KEY_A || key == KEY_W || key == KEY_S || key == KEY_E ||
+          key == KEY_D || key == KEY_F || key == KEY_T || key == KEY_G ||
+          key == KEY_Y || key == KEY_H || key == KEY_U || key == KEY_J);
 }
 
 int main(void) {
@@ -81,40 +84,47 @@ int main(void) {
       uint8_t byte = (uint8_t)(ps2_data & 0xFF);
 
       if (ps2_parse_byte(&parser, byte, &ev)) {
-        if (!key_allowed_in_zone(ev.key) &&
-            ev.key != KEY_1 && ev.key != KEY_2 && ev.key != KEY_3 &&
-            ev.key != KEY_4 && ev.key != KEY_5 && ev.key != KEY_6 &&
-            ev.key != KEY_7 && ev.key != KEY_8) {
+        if (timbre_get_mode() == TIMBRE_GUITAR) {
+          if (!is_number_key(ev.key)) {
             continue;
-        }
-        if (ev.pressed && timbre_get_mode() != TIMBRE_GUITAR) {
-          int new_zone = -1;
-
-          switch (ev.key) {
-            case KEY_1: new_zone = 0; break;
-            case KEY_2: new_zone = 1; break;
-            case KEY_3: new_zone = 2; break;
-            case KEY_4: new_zone = 3; break;
-            case KEY_5: new_zone = 4; break;
-            case KEY_6: new_zone = 5; break;
-            case KEY_7: new_zone = 6; break;
-            case KEY_8: new_zone = 7; break;
-            default: break;
+          }
+        } else {
+          if (!key_allowed_in_zone(ev.key) && !is_number_key(ev.key)) {
+            continue;
           }
 
-          if (new_zone >= 0) {
-            notes_set_zone(new_zone);
-            piano_draw_static();
-            vga_draw_zone_status();
-            continue;
+          if (ev.pressed && is_number_key(ev.key)) {
+            int new_zone = -1;
+
+            switch (ev.key) {
+              case KEY_1: new_zone = 0; break;
+              case KEY_2: new_zone = 1; break;
+              case KEY_3: new_zone = 2; break;
+              case KEY_4: new_zone = 3; break;
+              case KEY_5: new_zone = 4; break;
+              case KEY_6: new_zone = 5; break;
+              case KEY_7: new_zone = 6; break;
+              case KEY_8: new_zone = 7; break;
+              default: break;
+            }
+
+            if (new_zone >= 0) {
+              piano_engine_all_notes_off();
+              notes_set_zone(new_zone);
+              piano_draw_static();
+              vga_draw_zone_status();
+              continue;
+            }
           }
         }
 
         /* audio side */
         piano_engine_on_key_event(ev);
 
-        /* VGA side */
-        piano_handle_key_event(&ev);
+        /* VGA side: only piano/organ keep piano GUI key highlight */
+        if (timbre_get_mode() != TIMBRE_GUITAR) {
+          piano_handle_key_event(&ev);
+        }
       }
     }
 

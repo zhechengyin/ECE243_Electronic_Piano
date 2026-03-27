@@ -26,12 +26,12 @@
 #define COLOR_BLACK_ON   0xF800
 #define COLOR_BORDER     0x0000
 
-void vga_put_pixel(int x, int y, uint16_t color);
-void vga_fill_rect(int x, int y, int width, int height, uint16_t color);
-void vga_draw_rect(int x, int y, int width, int height, uint16_t color);
+//void vga_put_pixel(int x, int y, uint16_t color);
+//void vga_fill_rect(int x, int y, int width, int height, uint16_t color);
+//void vga_draw_rect(int x, int y, int width, int height, uint16_t color);
 void vga_clear(uint16_t color);
 
-void vga_draw_letter(int x, int y, char c, uint16_t color);
+//void vga_draw_letter(int x, int y, char c, uint16_t color);
 void vga_draw_key_labels(void);
 void vga_draw_key_label(KeyCode key, bool highlighted);
 

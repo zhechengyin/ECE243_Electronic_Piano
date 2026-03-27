@@ -15,14 +15,12 @@ void mode_ui_draw_status(void) {
         }
     }
 
-    if (mode == TIMBRE_GUITAR) {
-        return;
-    }
-
     {
         const char *mode_name = "PIANO";
         if (mode == TIMBRE_ORGAN) {
             mode_name = "ORGAN";
+        } else if (mode == TIMBRE_GUITAR) {
+            mode_name = "GUITAR";
         }
 
         int off = (0 << 7) + 2;
@@ -34,6 +32,10 @@ void mode_ui_draw_status(void) {
         while (*mode_name) {
             buf[off++] = *mode_name++;
         }
+    }
+
+    if (mode == TIMBRE_GUITAR) {
+        return;
     }
 
     {
