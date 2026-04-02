@@ -3,6 +3,7 @@
 #include "app/key_event.h"
 #include "app/piano_engine.h"
 #include "io/audio.h"
+#include "io/guitar_view.h"
 #include "io/ps2.h"
 #include "io/vga.h"
 #include "platform/address_map.h"
@@ -27,6 +28,8 @@ static void cycle_mode(void) {
     timbre_set_mode(TIMBRE_PIANO);
   }
 
+  /* redraw full screen for the new mode */
+  piano_draw_static();
   vga_draw_zone_status();
 }
 
@@ -43,6 +46,7 @@ static int key_allowed_in_zone(KeyCode key) {
 }
 
 int main(void) {
+  bool key_down_state[32] = {0}; 
   volatile int* ps2_ptr = (int*)PS2_BASE;
   volatile int* switch_ptr = (int*)SW_BASE;
   volatile int* key_ptr = (int*)KEY_BASE;
@@ -84,47 +88,77 @@ int main(void) {
       uint8_t byte = (uint8_t)(ps2_data & 0xFF);
 
       if (ps2_parse_byte(&parser, byte, &ev)) {
+         /* -------- FILTER REPEATED MAKE -------- */
+        if (ev.pressed) {
+            if (key_down_state[ev.key]) {
+                continue;  // IGNORE repeated press
+            }
+            key_down_state[ev.key] = true;
+        } else {
+            key_down_state[ev.key] = false;
+        }
+
         if (timbre_get_mode() == TIMBRE_GUITAR) {
           if (!is_number_key(ev.key)) {
             continue;
           }
-        } else {
-          if (!key_allowed_in_zone(ev.key) && !is_number_key(ev.key)) {
-            continue;
-          }
 
-          if (ev.pressed && is_number_key(ev.key)) {
+          /* audio side */
+          piano_engine_on_key_event(ev);
+
+          /* VGA side */
+          guitar_view_handle_key_event(&ev);
+
+          continue;
+        }
+
+        if (!key_allowed_in_zone(ev.key) && !is_number_key(ev.key)) {
+          continue;
+        }
+
+        if (ev.pressed && is_number_key(ev.key)) {
             int new_zone = -1;
 
             switch (ev.key) {
-              case KEY_1: new_zone = 0; break;
-              case KEY_2: new_zone = 1; break;
-              case KEY_3: new_zone = 2; break;
-              case KEY_4: new_zone = 3; break;
-              case KEY_5: new_zone = 4; break;
-              case KEY_6: new_zone = 5; break;
-              case KEY_7: new_zone = 6; break;
-              case KEY_8: new_zone = 7; break;
-              default: break;
+                case KEY_1: new_zone = 0; break;
+                case KEY_2: new_zone = 1; break;
+                case KEY_3: new_zone = 2; break;
+                case KEY_4: new_zone = 3; break;
+                case KEY_5: new_zone = 4; break;
+                case KEY_6: new_zone = 5; break;
+                case KEY_7: new_zone = 6; break;
+                case KEY_8: new_zone = 7; break;
+                default: break;
             }
 
             if (new_zone >= 0) {
-              piano_engine_all_notes_off();
-              notes_set_zone(new_zone);
-              piano_draw_static();
-              vga_draw_zone_status();
-              continue;
+                int old_zone = notes_get_zone();
+
+                /* ignore if zone did not actually change */
+                if (new_zone == old_zone) {
+                    continue;
+                }
+
+                piano_engine_all_notes_off();
+                notes_set_zone(new_zone);
+
+                /* only redraw keyboard layout if switching
+                  between the special low zone and normal zones */
+                if ((old_zone == 0) != (new_zone == 0)) {
+                    piano_draw_static();
+                }
+
+                /* always update the octave/mode text */
+                vga_draw_zone_status();
+                continue;
             }
-          }
         }
 
         /* audio side */
         piano_engine_on_key_event(ev);
 
-        /* VGA side: only piano/organ keep piano GUI key highlight */
-        if (timbre_get_mode() != TIMBRE_GUITAR) {
-          piano_handle_key_event(&ev);
-        }
+        /* VGA side */
+        piano_handle_key_event(&ev);
       }
     }
 
@@ -133,16 +167,20 @@ int main(void) {
     /* ---------------------------------
      * 2) Feed audio FIFO
      * --------------------------------- */
-    int space = audio_write_space();
-    if (space > 32) {
-      space = 32;
-    }
+    {
+      int space = audio_write_space();
+      if (space > 32) {
+        space = 32;
+      }
 
-    int sound_enable = (*switch_ptr) & 0x1;
+      {
+        int sound_enable = (*switch_ptr) & 0x1;
 
-    for (int i = 0; i < space; i++) {
-      int32_t sample = sound_enable ? piano_engine_next_sample() : 0;
-      audio_write_sample(sample, sample);
+        for (int i = 0; i < space; i++) {
+          int32_t sample = sound_enable ? piano_engine_next_sample() : 0;
+          audio_write_sample(sample, sample);
+        }
+      }
     }
   }
 }
